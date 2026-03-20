@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Coffee, Sparkles, User, Gift } from 'lucide-react';
 
@@ -42,39 +42,38 @@ interface Particle {
   x: number;
   y: number;
   emoji: string;
+  scale: number;
+  delay: number;
 }
 
 export default function App() {
   const [message, setMessage] = useState("Hey you. Need a little pick-me-up?");
   const [particles, setParticles] = useState<Particle[]>([]);
-  const [activeType, setActiveType] = useState<'hug' | 'chocolate' | 'kiss' | null>(null);
 
   const spawnParticles = (emoji: string) => {
-    const newParticles = Array.from({ length: 12 }).map((_, i) => ({
+    const newParticles = Array.from({ length: 15 }).map((_, i) => ({
       id: Date.now() + i,
-      x: Math.random() * 100 - 50,
-      y: Math.random() * 100 - 50,
-      emoji
+      x: (Math.random() - 0.5) * 80,
+      y: -20 - Math.random() * 20,
+      emoji,
+      scale: 0.5 + Math.random(),
+      delay: i * 0.05
     }));
     setParticles(prev => [...prev, ...newParticles]);
     setTimeout(() => {
       setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-    }, 2000);
+    }, 2500);
   };
 
   const handleAction = (type: 'hug' | 'chocolate' | 'kiss') => {
     const randomMsg = MESSAGES[type][Math.floor(Math.random() * MESSAGES[type].length)];
     setMessage(randomMsg);
-    setActiveType(type);
     
     let emoji = '🫂';
     if (type === 'chocolate') emoji = '🍫';
     if (type === 'kiss') emoji = '😘';
     
     spawnParticles(emoji);
-    
-    // Reset active type for animation trigger
-    setTimeout(() => setActiveType(null), 500);
   };
 
   return (
@@ -156,12 +155,7 @@ export default function App() {
         </div>
 
         {/* Footer Accents */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="flex items-center space-x-6 pt-8"
-        >
+        <div className="flex items-center space-x-6 pt-8">
           <div className="flex items-center space-x-2 text-zinc-600">
             <Heart size={14} />
             <span className="text-[10px] uppercase tracking-widest">Always Here</span>
@@ -171,25 +165,36 @@ export default function App() {
             <Sparkles size={14} />
             <span className="text-[10px] uppercase tracking-widest">Pure Love</span>
           </div>
-        </motion.div>
+        </div>
       </main>
 
-      {/* Particle Overlay */}
-      <div className="fixed inset-0 pointer-events-none z-50">
+      {/* Particle Overlay - "Coming to you" effect */}
+      <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
         <AnimatePresence>
           {particles.map(p => (
             <motion.div
               key={p.id}
-              initial={{ opacity: 0, scale: 0, x: '50vw', y: '50vh' }}
-              animate={{ 
-                opacity: [0, 1, 0], 
-                scale: [0.5, 1.5, 0.5],
-                x: `calc(50vw + ${p.x}vw)`,
+              initial={{ 
+                opacity: 0, 
+                scale: 0, 
+                x: `calc(50vw + ${p.x}vw)`, 
                 y: `calc(50vh + ${p.y}vh)`,
-                rotate: Math.random() * 360
+                z: -1000
               }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
-              className="absolute text-3xl"
+              animate={{ 
+                opacity: [0, 1, 1, 0], 
+                scale: [0.2, p.scale, p.scale * 2, 0],
+                x: `calc(50vw + ${p.x * 1.5}vw)`,
+                y: `calc(50vh + ${p.y + 40}vh)`,
+                z: 0
+              }}
+              transition={{ 
+                duration: 2, 
+                ease: "easeOut",
+                delay: p.delay 
+              }}
+              className="absolute text-4xl select-none"
+              style={{ perspective: '1000px' }}
             >
               {p.emoji}
             </motion.div>
